@@ -74,6 +74,8 @@ type Server struct {
 
 	logSink     *system.SinkPool
 	installSink *system.SinkPool
+
+	insights *insightTracker
 }
 
 // New returns a new server instance with a context and all of the default
@@ -88,6 +90,7 @@ func New(client remote.Client) (*Server, error) {
 		transferring: system.NewAtomicBool(false),
 		restoring:    system.NewAtomicBool(false),
 		powerLock:    system.NewLocker(),
+		insights:     newInsightTracker(),
 		sinks: map[system.SinkName]*system.SinkPool{
 			system.LogSink:     system.NewSinkPool(),
 			system.InstallSink: system.NewSinkPool(),

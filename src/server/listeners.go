@@ -63,6 +63,7 @@ func (s *Server) processConsoleOutputEvent(v []byte) {
 	// don't really care about side-effects from this call, and don't want it to block
 	// the console sending logic.
 	go s.onConsoleOutput(v)
+	go s.analyzeConsoleLine(v)
 
 	// If the console is being throttled, do nothing else with it, we don't want
 	// to waste time. This code previously terminated server instances after violating
