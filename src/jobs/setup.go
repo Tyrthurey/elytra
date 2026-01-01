@@ -23,4 +23,24 @@ func SetupJobs(manager *Manager, serverManager *server.Manager, client remote.Cl
 		return NewBackupDeleteAllJob(data, serverManager, client)
 	})
 
+	manager.RegisterJobType(modrinthJobTypeDownload, func(data map[string]interface{}) (Job, error) {
+		return NewModrinthDownloadJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(modrinthJobTypeScan, func(data map[string]interface{}) (Job, error) {
+		return NewModrinthScanJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(modrinthJobTypeDownloadBulk, func(data map[string]interface{}) (Job, error) {
+		return NewModrinthBulkDownloadJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(modrinthJobTypeUpdate, func(data map[string]interface{}) (Job, error) {
+		return NewModrinthUpdateJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(modrinthJobTypeRemove, func(data map[string]interface{}) (Job, error) {
+		return NewModrinthRemoveJob(data, serverManager)
+	})
+
 }
