@@ -812,8 +812,9 @@ type modrinthJarEntry struct {
 
 func (j *ModrinthScanJob) collectJarEntries(s *server.Server) ([]modrinthJarEntry, error) {
 	var entries []modrinthJarEntry
+	fs := s.Filesystem().UnixFS()
 	for _, dir := range j.directories {
-		err := ufs.WalkDir(s.Filesystem().UnixFS(), dir, func(p string, d ufs.DirEntry, err error) error {
+		err := ufs.WalkDir(fs, dir, func(p string, d ufs.DirEntry, err error) error {
 			if err != nil {
 				if errors.Is(err, ufs.ErrNotExist) {
 					return ufs.SkipDir
@@ -829,7 +830,11 @@ func (j *ModrinthScanJob) collectJarEntries(s *server.Server) ([]modrinthJarEntr
 			if !strings.HasSuffix(strings.ToLower(d.Name()), ".jar") {
 				return nil
 			}
-			info, err := d.Info()
+			// Use Stat with the full path instead of d.Info() to avoid
+			// "bad file descriptor" errors. The DirEntry's Info() method
+			// uses a cached directory fd that may be closed by the time
+			// we call it.
+			info, err := fs.Stat(p)
 			if err != nil {
 				return err
 			}
