@@ -84,14 +84,16 @@ type Manager struct {
 
 // Instance wraps a Job implementation with execution metadata
 type Instance struct {
-	Job       Job         `json:"job"`
-	Status    Status      `json:"status"`
-	Progress  int         `json:"progress"`
-	Message   string      `json:"message"`
-	Error     string      `json:"error"`
-	Result    interface{} `json:"result"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	Job             Job         `json:"job"`
+	Status          Status      `json:"status"`
+	Progress        int         `json:"progress"`
+	Message         string      `json:"message"`
+	Error           string      `json:"error"`
+	Result          interface{} `json:"result"`
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
+	lastPanelNotify time.Time   // Track last Panel notification for rate limiting
+	lastStatus      Status      // Track last status to detect status changes
 }
 
 // NewManager creates a new job manager
@@ -293,52 +295,72 @@ func (m *Manager) runJobExecution(instance *Instance) {
 	}
 }
 
-// reportProgress automatically sends ALL status updates to the Panel and WebSocket clients
-func (m *Manager) reportProgress(instance *Instance) {
-	// Send Panel notification
-	if m.client != nil {
-		// Prepare status notification with all current information
-		notification := map[string]interface{}{
-			"status":        string(instance.Status),
-			"progress":      instance.Progress,
-			"message":       instance.Message,
-			"job_type":      instance.Job.GetType(),
-			"error_message": instance.Error,
-			"updated_at":    instance.UpdatedAt.Unix(),
-		}
+// panelNotifyMinInterval is the minimum time between Panel notifications for progress updates
+const panelNotifyMinInterval = 2 * time.Second
 
-		// Set successful field based on current status
-		if instance.Status == StatusCompleted {
-			notification["successful"] = true
-			if instance.Result != nil {
-				if resultMap, ok := instance.Result.(map[string]interface{}); ok {
-					for key, value := range resultMap {
-						notification[key] = value
+// reportProgress automatically sends status updates to the Panel and WebSocket clients
+// Panel notifications are rate-limited to avoid overwhelming the Panel with progress updates
+func (m *Manager) reportProgress(instance *Instance) {
+	// Send Panel notification (with rate limiting for progress updates)
+	if m.client != nil {
+		// Determine if we should send a Panel notification
+		// Always send on status changes (pending->running, running->completed/failed)
+		// Rate limit progress updates during "running" status
+		statusChanged := instance.Status != instance.lastStatus
+		timeSinceLastNotify := time.Since(instance.lastPanelNotify)
+		shouldNotifyPanel := statusChanged ||
+			instance.Status == StatusCompleted ||
+			instance.Status == StatusFailed ||
+			timeSinceLastNotify >= panelNotifyMinInterval
+
+		if shouldNotifyPanel {
+			// Update tracking fields
+			instance.lastPanelNotify = time.Now()
+			instance.lastStatus = instance.Status
+
+			// Prepare status notification with all current information
+			notification := map[string]interface{}{
+				"status":        string(instance.Status),
+				"progress":      instance.Progress,
+				"message":       instance.Message,
+				"job_type":      instance.Job.GetType(),
+				"error_message": instance.Error,
+				"updated_at":    instance.UpdatedAt.Unix(),
+			}
+
+			// Set successful field based on current status
+			if instance.Status == StatusCompleted {
+				notification["successful"] = true
+				if instance.Result != nil {
+					if resultMap, ok := instance.Result.(map[string]interface{}); ok {
+						for key, value := range resultMap {
+							notification[key] = value
+						}
 					}
 				}
+			} else if instance.Status == StatusFailed {
+				notification["successful"] = false
+			} else {
+				// For pending/running statuses, indicate not yet complete
+				notification["successful"] = false
 			}
-		} else if instance.Status == StatusFailed {
-			notification["successful"] = false
-		} else {
-			// For pending/running statuses, indicate not yet complete
-			notification["successful"] = false
-		}
 
-		// Send status notification to Panel asynchronously for ALL status changes
-		go func(jobID, jobType string, status Status) {
-			if err := m.client.ReportJobCompletion(context.Background(), jobID, notification); err != nil {
-				// Log error with context but don't fail the job
-				log.WithFields(log.Fields{
-					"job_id":   jobID,
-					"job_type": jobType,
-					"status":   string(status),
-					"error":    err.Error(),
-				}).Warn("failed to notify Panel of job status")
-			}
-		}(instance.Job.GetID(), instance.Job.GetType(), instance.Status)
+			// Send status notification to Panel asynchronously
+			go func(jobID, jobType string, status Status) {
+				if err := m.client.ReportJobCompletion(context.Background(), jobID, notification); err != nil {
+					// Log error with context but don't fail the job
+					log.WithFields(log.Fields{
+						"job_id":   jobID,
+						"job_type": jobType,
+						"status":   string(status),
+						"error":    err.Error(),
+					}).Warn("failed to notify Panel of job status")
+				}
+			}(instance.Job.GetID(), instance.Job.GetType(), instance.Status)
+		}
 	}
 
-	// Send WebSocket event for real-time updates
+	// Send WebSocket event for real-time updates (no rate limiting - WebSocket is lightweight)
 	m.publishWebSocketEvent(instance)
 }
 
