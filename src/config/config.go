@@ -98,6 +98,10 @@ type ApiConfiguration struct {
 
 	// A list of IP address of proxies that may send a X-Forwarded-For header to set the true clients IP
 	TrustedProxies []string `json:"trusted_proxies" yaml:"trusted_proxies"`
+
+	// CurseForge API key for accessing the CurseForge API
+	// This can be set via environment variable ELYTRA_API_CURSEFORGE_API_KEY
+	CurseForgeApiKey string `json:"-" yaml:"curseforge_api_key"`
 }
 
 // RemoteQueryConfiguration defines the configuration settings for remote requests

@@ -43,4 +43,28 @@ func SetupJobs(manager *Manager, serverManager *server.Manager, client remote.Cl
 		return NewModrinthRemoveJob(data, serverManager)
 	})
 
+	manager.RegisterJobType(curseforgeJobTypeDownload, func(data map[string]interface{}) (Job, error) {
+		return NewCurseForgeDownloadJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(curseforgeJobTypeScan, func(data map[string]interface{}) (Job, error) {
+		return NewCurseForgeScanJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(curseforgeJobTypeDownloadBulk, func(data map[string]interface{}) (Job, error) {
+		return NewCurseForgeBulkDownloadJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(curseforgeJobTypeUpdate, func(data map[string]interface{}) (Job, error) {
+		return NewCurseForgeUpdateJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(curseforgeJobTypeRemove, func(data map[string]interface{}) (Job, error) {
+		return NewCurseForgeRemoveJob(data, serverManager)
+	})
+
+	manager.RegisterJobType(curseforgeJobTypeUploadBlocked, func(data map[string]interface{}) (Job, error) {
+		return NewCurseForgeUploadBlockedJob(data, serverManager)
+	})
+
 }

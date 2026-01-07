@@ -3,6 +3,7 @@ package jobs
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
@@ -766,7 +767,11 @@ func (j *ModrinthScanJob) Execute(ctx context.Context, reporter ProgressReporter
 
 	if len(entries) == 0 {
 		reporter.ReportProgress(90, "No mods detected")
-		return map[string]interface{}{"files": []map[string]interface{}{}}, nil
+		return map[string]interface{}{
+			"successful": true,
+			"job_type":   modrinthJobTypeScan,
+			"files":      []map[string]interface{}{},
+		}, nil
 	}
 
 	reporter.ReportProgress(20, fmt.Sprintf("Found %d files, hashing...", len(entries)))
@@ -779,7 +784,18 @@ func (j *ModrinthScanJob) Execute(ctx context.Context, reporter ProgressReporter
 		default:
 		}
 
-		hashHex, err := hashFileSHA512(s, entry.path)
+		sha512Hex, err := hashFileSHA512(s, entry.path)
+		if err != nil {
+			return nil, err
+		}
+
+		// Calculate additional hashes for cross-platform matching
+		sha1Hex, err := hashFileSHA1(s, entry.path)
+		if err != nil {
+			return nil, err
+		}
+
+		murmur2, err := hashFileMurmur2(s, entry.path)
 		if err != nil {
 			return nil, err
 		}
@@ -791,7 +807,12 @@ func (j *ModrinthScanJob) Execute(ctx context.Context, reporter ProgressReporter
 			"path":     entry.path,
 			"name":     entry.name,
 			"size":     entry.size,
-			"hash":     "sha512:" + hashHex,
+			"hash":     "sha512:" + sha512Hex,
+			"hashes": map[string]interface{}{
+				"sha1":    sha1Hex,
+				"sha512":  sha512Hex,
+				"murmur2": murmur2,
+			},
 			"modified": entry.modified,
 		})
 	}
@@ -799,7 +820,9 @@ func (j *ModrinthScanJob) Execute(ctx context.Context, reporter ProgressReporter
 	reporter.ReportProgress(95, "Finalizing scan results...")
 
 	return map[string]interface{}{
-		"files": files,
+		"successful": true,
+		"job_type":   modrinthJobTypeScan,
+		"files":      files,
 	}, nil
 }
 
@@ -1170,6 +1193,20 @@ func hashFileSHA512(s *server.Server, filePath string) (string, error) {
 	defer f.Close()
 
 	hasher := sha512.New()
+	if _, err := io.Copy(hasher, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func hashFileSHA1(s *server.Server, filePath string) (string, error) {
+	f, err := s.Filesystem().UnixFS().Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	hasher := sha1.New()
 	if _, err := io.Copy(hasher, f); err != nil {
 		return "", err
 	}
