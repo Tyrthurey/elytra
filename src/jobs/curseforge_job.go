@@ -425,8 +425,9 @@ func NewCurseForgeUploadBlockedJob(data map[string]interface{}, serverManager *s
 
 func (j *CurseForgeDownloadJob) GetID() string      { return j.id }
 func (j *CurseForgeDownloadJob) GetType() string    { return curseforgeJobTypeDownload }
-func (j *CurseForgeDownloadJob) GetProgress() int    { return j.progress }
+func (j *CurseForgeDownloadJob) GetProgress() int   { return j.progress }
 func (j *CurseForgeDownloadJob) GetMessage() string { return j.message }
+func (j *CurseForgeDownloadJob) IsAsync() bool      { return true }
 
 func (j *CurseForgeDownloadJob) GetServerID() string           { return j.serverID }
 func (j *CurseForgeDownloadJob) GetWebSocketEventType() string { return "curseforge.status" }
@@ -619,6 +620,7 @@ func (j *CurseForgeBulkDownloadJob) GetID() string      { return j.id }
 func (j *CurseForgeBulkDownloadJob) GetType() string    { return curseforgeJobTypeDownloadBulk }
 func (j *CurseForgeBulkDownloadJob) GetProgress() int   { return j.progress }
 func (j *CurseForgeBulkDownloadJob) GetMessage() string { return j.message }
+func (j *CurseForgeBulkDownloadJob) IsAsync() bool      { return true }
 
 func (j *CurseForgeBulkDownloadJob) GetServerID() string           { return j.serverID }
 func (j *CurseForgeBulkDownloadJob) GetWebSocketEventType() string { return "curseforge.status" }
@@ -708,6 +710,7 @@ func (j *CurseForgeUpdateJob) GetID() string      { return j.id }
 func (j *CurseForgeUpdateJob) GetType() string    { return curseforgeJobTypeUpdate }
 func (j *CurseForgeUpdateJob) GetProgress() int   { return j.progress }
 func (j *CurseForgeUpdateJob) GetMessage() string { return j.message }
+func (j *CurseForgeUpdateJob) IsAsync() bool      { return true }
 
 func (j *CurseForgeUpdateJob) GetServerID() string           { return j.serverID }
 func (j *CurseForgeUpdateJob) GetWebSocketEventType() string { return "curseforge.status" }
@@ -895,6 +898,7 @@ func (j *CurseForgeUploadBlockedJob) GetID() string      { return j.id }
 func (j *CurseForgeUploadBlockedJob) GetType() string    { return curseforgeJobTypeUploadBlocked }
 func (j *CurseForgeUploadBlockedJob) GetProgress() int   { return j.progress }
 func (j *CurseForgeUploadBlockedJob) GetMessage() string { return j.message }
+func (j *CurseForgeUploadBlockedJob) IsAsync() bool      { return true }
 
 func (j *CurseForgeUploadBlockedJob) GetServerID() string           { return j.serverID }
 func (j *CurseForgeUploadBlockedJob) GetWebSocketEventType() string { return "curseforge.status" }

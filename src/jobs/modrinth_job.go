@@ -324,6 +324,7 @@ func (j *ModrinthDownloadJob) GetID() string      { return j.id }
 func (j *ModrinthDownloadJob) GetType() string    { return modrinthJobTypeDownload }
 func (j *ModrinthDownloadJob) GetProgress() int   { return j.progress }
 func (j *ModrinthDownloadJob) GetMessage() string { return j.message }
+func (j *ModrinthDownloadJob) IsAsync() bool      { return true }
 
 func (j *ModrinthDownloadJob) GetServerID() string           { return j.serverID }
 func (j *ModrinthDownloadJob) GetWebSocketEventType() string { return "modrinth.status" }
@@ -492,6 +493,7 @@ func (j *ModrinthBulkDownloadJob) GetID() string      { return j.id }
 func (j *ModrinthBulkDownloadJob) GetType() string    { return modrinthJobTypeDownloadBulk }
 func (j *ModrinthBulkDownloadJob) GetProgress() int   { return j.progress }
 func (j *ModrinthBulkDownloadJob) GetMessage() string { return j.message }
+func (j *ModrinthBulkDownloadJob) IsAsync() bool      { return true }
 
 func (j *ModrinthBulkDownloadJob) GetServerID() string           { return j.serverID }
 func (j *ModrinthBulkDownloadJob) GetWebSocketEventType() string { return "modrinth.status" }
@@ -573,6 +575,7 @@ func (j *ModrinthUpdateJob) GetID() string      { return j.id }
 func (j *ModrinthUpdateJob) GetType() string    { return modrinthJobTypeUpdate }
 func (j *ModrinthUpdateJob) GetProgress() int   { return j.progress }
 func (j *ModrinthUpdateJob) GetMessage() string { return j.message }
+func (j *ModrinthUpdateJob) IsAsync() bool      { return true }
 
 func (j *ModrinthUpdateJob) GetServerID() string           { return j.serverID }
 func (j *ModrinthUpdateJob) GetWebSocketEventType() string { return "modrinth.status" }

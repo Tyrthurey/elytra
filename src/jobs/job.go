@@ -61,6 +61,17 @@ type WebSocketJob interface {
 	GetWebSocketEventData() map[string]interface{}
 }
 
+// AsyncJob is an optional interface for jobs that should run asynchronously.
+// Jobs implementing this interface will have their Execute method run in a
+// separate goroutine, freeing up the worker immediately to process other jobs.
+// This is ideal for long-running operations like downloads that shouldn't block
+// the worker pool.
+type AsyncJob interface {
+	// IsAsync returns true if the job should be executed asynchronously.
+	// This allows jobs to conditionally run async based on their configuration.
+	IsAsync() bool
+}
+
 // Manager handles job execution and lifecycle
 type Manager struct {
 	jobs          map[string]*Instance
@@ -224,6 +235,19 @@ func (r *progressReporter) ReportStatus(status Status, message string) {
 
 // executeJob runs a single job instance
 func (m *Manager) executeJob(instance *Instance) {
+	// Check if this job should run asynchronously
+	if asyncJob, ok := instance.Job.(AsyncJob); ok && asyncJob.IsAsync() {
+		// Run the job in a separate goroutine to free up the worker immediately
+		go m.runJobExecution(instance)
+		return
+	}
+
+	// Run synchronously for non-async jobs
+	m.runJobExecution(instance)
+}
+
+// runJobExecution performs the actual job execution logic
+func (m *Manager) runJobExecution(instance *Instance) {
 	defer func() {
 		if r := recover(); r != nil {
 			instance.Status = StatusFailed
