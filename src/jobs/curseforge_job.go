@@ -4,17 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
-	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -1436,20 +1433,6 @@ func parseCurseForgeDownloadSpec(data map[string]interface{}, requestMax int64, 
 		maxFileSize:  resolveCurseForgeMaxFileSize(itemMax),
 		isBlocked:    isBlocked,
 	}, nil
-}
-
-func hashFileSHA1(s *server.Server, filePath string) (string, error) {
-	f, err := s.Filesystem().UnixFS().Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	hasher := sha1.New()
-	if _, err := io.Copy(hasher, f); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func deleteCurseForgeFileIfExists(s *server.Server, filePath string) (bool, error) {
