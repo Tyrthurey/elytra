@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/apex/log"
@@ -94,6 +95,7 @@ type Instance struct {
 	UpdatedAt       time.Time   `json:"updated_at"`
 	lastPanelNotify time.Time   // Track last Panel notification for rate limiting
 	lastStatus      Status      // Track last status to detect status changes
+	notifyMu        sync.Mutex  // Mutex to prevent race conditions in rate limiting
 }
 
 // NewManager creates a new job manager
@@ -303,6 +305,9 @@ const panelNotifyMinInterval = 2 * time.Second
 func (m *Manager) reportProgress(instance *Instance) {
 	// Send Panel notification (with rate limiting for progress updates)
 	if m.client != nil {
+		// Use mutex to prevent race conditions when multiple goroutines report progress
+		instance.notifyMu.Lock()
+
 		// Determine if we should send a Panel notification
 		// Always send on status changes (pending->running, running->completed/failed)
 		// Rate limit progress updates during "running" status
@@ -317,7 +322,11 @@ func (m *Manager) reportProgress(instance *Instance) {
 			// Update tracking fields
 			instance.lastPanelNotify = time.Now()
 			instance.lastStatus = instance.Status
+		}
 
+		instance.notifyMu.Unlock()
+
+		if shouldNotifyPanel {
 			// Prepare status notification with all current information
 			notification := map[string]interface{}{
 				"status":        string(instance.Status),
